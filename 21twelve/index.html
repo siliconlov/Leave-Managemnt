@@ -1,0 +1,815 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Leave Request Form - 21Twelve</title>
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/flatpickr/dist/flatpickr.min.css">
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #003d6b 0%, #ff6b1a 100%);
+            min-height: 100vh;
+            padding: 20px;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+        }
+
+        .form-container {
+            background: white;
+            border-radius: 16px;
+            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+            max-width: 700px;
+            width: 100%;
+            overflow: hidden;
+        }
+
+        .form-header {
+            background: linear-gradient(135deg, #003d6b 0%, #ff6b1a 100%);
+            color: white;
+            padding: 30px;
+            text-align: center;
+        }
+
+        .form-header .logo {
+            margin-bottom: 20px;
+            background: white;
+            padding: 15px 30px;
+            border-radius: 8px;
+            display: inline-block;
+        }
+
+        .form-header .logo img {
+            max-width: 280px;
+            height: auto;
+            display: block;
+        }
+
+        .form-header h1 {
+            font-size: 28px;
+            margin-bottom: 8px;
+            font-weight: 600;
+        }
+
+        .form-header p {
+            font-size: 14px;
+            opacity: 0.9;
+        }
+
+        .form-body {
+            padding: 40px;
+        }
+
+        .form-group {
+            margin-bottom: 24px;
+        }
+
+        .form-group label {
+            display: block;
+            margin-bottom: 8px;
+            font-weight: 600;
+            color: #333;
+            font-size: 14px;
+        }
+
+        .form-group label .required {
+            color: #e53e3e;
+            margin-left: 4px;
+        }
+
+        .form-group input[type="text"],
+        .form-group input[type="email"],
+        .form-group input[type="date"],
+        .form-group select,
+        .form-group textarea {
+            width: 100%;
+            padding: 12px 16px;
+            border: 2px solid #e2e8f0;
+            border-radius: 8px;
+            font-size: 14px;
+            transition: all 0.3s ease;
+            font-family: inherit;
+        }
+
+        .form-group input[type="text"]:focus,
+        .form-group input[type="email"]:focus,
+        .form-group input[type="date"]:focus,
+        .form-group select:focus,
+        .form-group textarea:focus {
+            outline: none;
+            border-color: #003d6b;
+            box-shadow: 0 0 0 3px rgba(0, 61, 107, 0.1);
+        }
+
+        .form-group textarea {
+            resize: vertical;
+            min-height: 100px;
+        }
+
+        .form-row {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 16px;
+        }
+
+        .radio-group {
+            display: flex;
+            gap: 20px;
+            margin-top: 8px;
+        }
+
+        .radio-option {
+            display: flex;
+            align-items: center;
+            cursor: pointer;
+        }
+
+        .radio-option input[type="radio"] {
+            width: 18px;
+            height: 18px;
+            margin-right: 8px;
+            cursor: pointer;
+            accent-color: #ff6b1a;
+        }
+
+        .radio-option label {
+            margin: 0;
+            cursor: pointer;
+            font-weight: normal;
+        }
+
+        /* Checkbox Group */
+        .checkbox-group {
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
+            margin-top: 8px;
+        }
+
+        .checkbox-option {
+            display: flex;
+            align-items: center;
+            cursor: pointer;
+        }
+
+        .checkbox-option input[type="checkbox"] {
+            width: 20px;
+            height: 20px;
+            margin-right: 10px;
+            cursor: pointer;
+            accent-color: #ff6b1a;
+        }
+
+        .checkbox-option label {
+            margin: 0;
+            cursor: pointer;
+            font-weight: normal;
+            font-size: 15px;
+            color: #333;
+        }
+
+        /* Date Selection Containers */
+        .date-container {
+            display: none;
+            margin-top: 16px;
+            padding: 20px;
+            background: #f7fafc;
+            border-radius: 8px;
+            border: 1px solid #e2e8f0;
+        }
+
+        .date-container.active {
+            display: block;
+            animation: fadeIn 0.3s ease;
+        }
+
+        @keyframes fadeIn {
+            from {
+                opacity: 0;
+                transform: translateY(-10px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        /* Specific Dates Display */
+        .selected-dates-display {
+            margin-top: 12px;
+            padding: 12px;
+            background: white;
+            border-radius: 6px;
+            border: 1px solid #e2e8f0;
+            min-height: 50px;
+        }
+
+        .selected-dates-display h4 {
+            font-size: 13px;
+            color: #64748b;
+            margin-bottom: 8px;
+        }
+
+        .date-chips {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 12px;
+            align-items: center;
+        }
+
+        .date-chip {
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            background: #ff6b1a;
+            color: white;
+            padding: 10px 16px;
+            border-radius: 28px;
+            font-size: 14px;
+            font-weight: 600;
+            flex-wrap: nowrap;
+            box-shadow: 0 3px 10px rgba(255, 107, 26, 0.3);
+            transition: all 0.3s ease;
+        }
+
+        .date-chip:hover {
+            box-shadow: 0 5px 15px rgba(255, 107, 26, 0.4);
+            transform: translateY(-2px);
+        }
+
+        .date-chip.half-day {
+            background: #4299e1;
+            box-shadow: 0 3px 10px rgba(66, 153, 225, 0.3);
+        }
+
+        .date-chip.half-day:hover {
+            box-shadow: 0 5px 15px rgba(66, 153, 225, 0.4);
+        }
+
+        .date-chip button {
+            background: none;
+            border: none;
+            color: white;
+            cursor: pointer;
+            font-size: 20px;
+            line-height: 1;
+            padding: 0;
+            width: 24px;
+            height: 24px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            border-radius: 50%;
+            transition: all 0.2s;
+            font-weight: bold;
+        }
+
+        .date-chip button:hover {
+            background: rgba(255, 255, 255, 0.3);
+            transform: scale(1.1);
+        }
+
+        .day-type-toggle {
+            display: inline-flex;
+            background: rgba(0, 0, 0, 0.2);
+            border-radius: 20px;
+            padding: 3px;
+            margin-left: 8px;
+            gap: 3px;
+            border: 2px solid rgba(255, 255, 255, 0.3);
+        }
+
+        .day-type-btn {
+            background: transparent;
+            border: none;
+            color: rgba(255, 255, 255, 0.7);
+            padding: 6px 14px;
+            font-size: 12px;
+            border-radius: 16px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            font-weight: 600;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            min-width: 60px;
+        }
+
+        .day-type-btn:hover {
+            background: rgba(255, 255, 255, 0.15);
+            color: white;
+        }
+
+        .day-type-btn.active {
+            background: white;
+            color: #ff6b1a;
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
+            transform: scale(1.05);
+        }
+
+        .date-chip.half-day .day-type-btn.active {
+            color: #4299e1;
+        }
+
+        .half-day-badge {
+            font-size: 10px;
+            background: rgba(255, 255, 255, 0.3);
+            padding: 2px 6px;
+            border-radius: 8px;
+            margin-left: 4px;
+        }
+
+        .empty-dates {
+            color: #94a3b8;
+            font-size: 13px;
+            font-style: italic;
+        }
+
+        .submit-btn {
+            width: 100%;
+            padding: 16px;
+            background: linear-gradient(135deg, #003d6b 0%, #ff6b1a 100%);
+            color: white;
+            border: none;
+            border-radius: 8px;
+            font-size: 16px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            margin-top: 8px;
+        }
+
+        .submit-btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 8px 20px rgba(0, 61, 107, 0.3);
+        }
+
+        .submit-btn:active {
+            transform: translateY(0);
+        }
+
+        .submit-btn:disabled {
+            background: #cbd5e0;
+            cursor: not-allowed;
+            transform: none;
+        }
+
+        /* Responsive Design */
+        @media (max-width: 768px) {
+            .form-body {
+                padding: 24px;
+            }
+
+            .form-row {
+                grid-template-columns: 1fr;
+            }
+
+            .radio-group {
+                flex-direction: column;
+                gap: 12px;
+            }
+
+            .form-header h1 {
+                font-size: 24px;
+            }
+
+            .form-header .logo img {
+                max-width: 200px;
+            }
+        }
+
+        .info-text {
+            font-size: 13px;
+            color: #64748b;
+            margin-top: 6px;
+        }
+    </style>
+</head>
+<body>
+    <div class="form-container">
+        <!-- Header with Logo -->
+        <div class="form-header">
+            <div class="logo">
+                <!-- Logo will be displayed here -->
+                <img src="Logo21twelve.webp" alt="21Twelve Logo" onerror="this.style.display='none'">
+            </div>
+            <h1>Leave Request Form</h1>
+            <p>Please fill out all required fields</p>
+        </div>
+
+        <!-- Form Body -->
+        <div class="form-body">
+            <form id="leaveForm">
+                <!-- Employee ID -->
+                <div class="form-group">
+                    <label for="employeeId">Employee ID <span class="required">*</span></label>
+                    <input type="text" id="employeeId" name="employeeId" required 
+                           placeholder="Enter your employee ID">
+                </div>
+
+                <!-- Leave Type -->
+                <div class="form-group">
+                    <label for="leaveType">Leave Type <span class="required">*</span></label>
+                    <select id="leaveType" name="leaveType" required>
+                        <option value="">Select leave type</option>
+                        <option value="planned">Planned</option>
+                        <option value="unplanned">Unplanned</option>
+                        <option value="planned_half">Planned Half</option>
+                        <option value="unplanned_half">Unplanned Half</option>
+                        <option value="lwp">LWP</option>
+                        <option value="half_day">Half Day</option>
+                        <option value="wfh">WFH</option>
+                    </select>
+                </div>
+
+                <!-- Date Selection Type -->
+                <div class="form-group">
+                    <label>Date Selection <span class="required">*</span></label>
+                    <div class="radio-group">
+                        <div class="radio-option">
+                            <input type="radio" id="dateRange" name="dateType" value="range">
+                            <label for="dateRange">Date Range (Continuous)</label>
+                        </div>
+                        <div class="radio-option">
+                            <input type="radio" id="dateSpecific" name="dateType" value="specific">
+                            <label for="dateSpecific">Specific Dates</label>
+                        </div>
+                    </div>
+                    <p class="info-text">Choose date range for continuous leave, or specific dates for non-consecutive days (with full/half day options)</p>
+                </div>
+
+                <!-- Date Range Container -->
+                <div id="dateRangeContainer" class="date-container">
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label for="startDate">Start Date <span class="required">*</span></label>
+                            <input type="date" id="startDate" name="startDate">
+                        </div>
+                        <div class="form-group">
+                            <label for="endDate">End Date <span class="required">*</span></label>
+                            <input type="date" id="endDate" name="endDate">
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Specific Dates Container -->
+                <div id="specificDatesContainer" class="date-container">
+                    <div class="form-group">
+                        <label for="specificDates">Select Multiple Dates <span class="required">*</span></label>
+                        <input type="text" id="specificDates" name="specificDates" 
+                               placeholder="Click to select multiple dates" readonly>
+                        <p class="info-text">Click on multiple dates in the calendar. After selecting, you can toggle each date between Full Day and Half Day.</p>
+                        
+                        <div class="selected-dates-display">
+                            <h4>Selected Dates:</h4>
+                            <div class="date-chips" id="selectedDatesChips">
+                                <span class="empty-dates">No dates selected yet</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Reason -->
+                <div class="form-group">
+                    <label for="reason">Reason for Leave <span class="required">*</span></label>
+                    <textarea id="reason" name="reason" required 
+                              placeholder="Please provide a brief reason for your leave request"></textarea>
+                </div>
+
+                <!-- Submit Button -->
+                <button type="submit" class="submit-btn">🚀 Submit Leave Request</button>
+            </form>
+        </div>
+    </div>
+
+    <!-- Flatpickr JS -->
+    <script src="https://cdn.jsdelivr.net/npm/flatpickr"></script>
+    
+    <script>
+        // ============================================
+        // DOM Elements
+        // ============================================
+        const form = document.getElementById('leaveForm');
+        const dateTypeRadios = document.querySelectorAll('input[name="dateType"]');
+        const dateRangeContainer = document.getElementById('dateRangeContainer');
+        const specificDatesContainer = document.getElementById('specificDatesContainer');
+        const startDateInput = document.getElementById('startDate');
+        const endDateInput = document.getElementById('endDate');
+        const specificDatesInput = document.getElementById('specificDates');
+        const selectedDatesChips = document.getElementById('selectedDatesChips');
+
+        // ============================================
+        // State Management
+        // ============================================
+        let selectedSpecificDates = [];
+        let dateTypes = {}; // Store whether each date is 'full' or 'half'
+        let flatpickrInstance = null;
+
+        // Set min date to today for date inputs
+        const today = new Date().toISOString().split('T')[0];
+        startDateInput.min = today;
+        endDateInput.min = today;
+
+        // ============================================
+        // Helper: Get Date Key without timezone issues
+        // ============================================
+        function getDateKey(date) {
+            const year = date.getFullYear();
+            const month = String(date.getMonth() + 1).padStart(2, '0');
+            const day = String(date.getDate()).padStart(2, '0');
+            return `${year}-${month}-${day}`;
+        }
+
+        // ============================================
+        // Date Type Selection Handler
+        // ============================================
+        dateTypeRadios.forEach(radio => {
+            radio.addEventListener('change', function() {
+                const selectedType = this.value;
+                
+                if (selectedType === 'range') {
+                    // Show date range, hide specific dates
+                    dateRangeContainer.classList.add('active');
+                    specificDatesContainer.classList.remove('active');
+                    
+                    // Enable range inputs, disable specific
+                    startDateInput.required = true;
+                    endDateInput.required = true;
+                    startDateInput.disabled = false;
+                    endDateInput.disabled = false;
+                    specificDatesInput.disabled = true;
+                    
+                    // Clear specific dates
+                    selectedSpecificDates = [];
+                    dateTypes = {};
+                    if (flatpickrInstance) {
+                        flatpickrInstance.clear();
+                    }
+                    updateSelectedDatesDisplay();
+                    
+                } else if (selectedType === 'specific') {
+                    // Show specific dates, hide date range
+                    specificDatesContainer.classList.add('active');
+                    dateRangeContainer.classList.remove('active');
+                    
+                    // Enable specific input, disable range
+                    specificDatesInput.disabled = false;
+                    startDateInput.required = false;
+                    endDateInput.required = false;
+                    startDateInput.disabled = true;
+                    endDateInput.disabled = true;
+                    
+                    // Clear range dates
+                    startDateInput.value = '';
+                    endDateInput.value = '';
+                    
+                    // Initialize Flatpickr if not already done
+                    initializeFlatpickr();
+                }
+            });
+        });
+
+        // ============================================
+        // Initialize Flatpickr (Multi-Date Picker)
+        // ============================================
+        function initializeFlatpickr() {
+            if (flatpickrInstance) {
+                return; // Already initialized
+            }
+
+            flatpickrInstance = flatpickr(specificDatesInput, {
+                mode: 'multiple',
+                dateFormat: 'Y-m-d',
+                minDate: 'today',
+                conjunction: ', ',
+                onChange: function(selectedDates, dateStr, instance) {
+                    selectedSpecificDates = selectedDates;
+                    // Initialize new dates as 'full' day by default
+                    selectedDates.forEach(date => {
+                        const dateKey = getDateKey(date);
+                        if (!dateTypes[dateKey]) {
+                            dateTypes[dateKey] = 'full';
+                        }
+                    });
+                    updateSelectedDatesDisplay();
+                },
+                onClose: function(selectedDates, dateStr, instance) {
+                    specificDatesInput.value = selectedDates.length > 0 
+                        ? `${selectedDates.length} date(s) selected` 
+                        : '';
+                }
+            });
+        }
+
+        // ============================================
+        // Update Selected Dates Display (Chips)
+        // ============================================
+        function updateSelectedDatesDisplay() {
+            selectedDatesChips.innerHTML = '';
+            
+            if (selectedSpecificDates.length === 0) {
+                selectedDatesChips.innerHTML = '<span class="empty-dates">No dates selected yet</span>';
+                return;
+            }
+
+            selectedSpecificDates.forEach((date, index) => {
+                const dateKey = getDateKey(date);
+                const dayType = dateTypes[dateKey] || 'full';
+                
+                const chip = document.createElement('div');
+                chip.className = `date-chip ${dayType === 'half' ? 'half-day' : ''}`;
+                
+                const formattedDate = formatDate(date);
+                chip.innerHTML = `
+                    <span>${formattedDate}</span>
+                    <div class="day-type-toggle">
+                        <button type="button" class="day-type-btn ${dayType === 'full' ? 'active' : ''}" 
+                                onclick="toggleDayType('${dateKey}', 'full')" title="Full Day">
+                            Full
+                        </button>
+                        <button type="button" class="day-type-btn ${dayType === 'half' ? 'active' : ''}" 
+                                onclick="toggleDayType('${dateKey}', 'half')" title="Half Day">
+                            Half
+                        </button>
+                    </div>
+                    <button type="button" onclick="removeDateChip(${index})" title="Remove date">×</button>
+                `;
+                
+                selectedDatesChips.appendChild(chip);
+            });
+        }
+
+        // ============================================
+        // Toggle Day Type (Full/Half)
+        // ============================================
+        window.toggleDayType = function(dateKey, type) {
+            dateTypes[dateKey] = type;
+            updateSelectedDatesDisplay();
+        };
+
+        // ============================================
+        // Remove Date Chip
+        // ============================================
+        window.removeDateChip = function(index) {
+            const dateToRemove = selectedSpecificDates[index];
+            const dateKey = getDateKey(dateToRemove);
+            
+            selectedSpecificDates.splice(index, 1);
+            delete dateTypes[dateKey];
+            
+            if (flatpickrInstance) {
+                flatpickrInstance.setDate(selectedSpecificDates);
+            }
+            
+            updateSelectedDatesDisplay();
+        };
+
+        // ============================================
+        // Format Date Helper
+        // ============================================
+        function formatDate(date) {
+            const options = { year: 'numeric', month: 'short', day: 'numeric' };
+            return new Date(date).toLocaleDateString('en-US', options);
+        }
+
+        // ============================================
+        // End Date Validation
+        // ============================================
+        startDateInput.addEventListener('change', function() {
+            endDateInput.min = this.value;
+            if (endDateInput.value && endDateInput.value < this.value) {
+                endDateInput.value = this.value;
+            }
+        });
+
+        // ============================================
+        // Configuration - n8n Webhook URL
+        // ============================================
+        const WEBHOOK_URL = 'https://n8n.21twelveinteractive.com/webhook/81070b87-4be5-4552-8af2-3c789d5d3f07';
+
+        // ============================================
+        // Form Submission
+        // ============================================
+        form.addEventListener('submit', async function(e) {
+            e.preventDefault();
+            
+            // Validate dates based on selection type
+            const dateType = document.querySelector('input[name="dateType"]:checked');
+            
+            if (!dateType) {
+                alert('Please select a date type (Range or Specific)');
+                return;
+            }
+
+            if (dateType.value === 'range') {
+                if (!startDateInput.value || !endDateInput.value) {
+                    alert('Please select both start and end dates');
+                    return;
+                }
+                if (new Date(endDateInput.value) < new Date(startDateInput.value)) {
+                    alert('End date cannot be before start date');
+                    return;
+                }
+            } else if (dateType.value === 'specific') {
+                if (selectedSpecificDates.length === 0) {
+                    alert('Please select at least one specific date');
+                    return;
+                }
+            }
+
+            // Generate Request ID
+            const requestId = `REQ-${Date.now()}`;
+
+            // Collect form data
+            const formData = {
+                employeeId: document.getElementById('employeeId').value,
+                leaveType: document.getElementById('leaveType').value,
+                dateType: dateType.value,
+                reason: document.getElementById('reason').value,
+                requestId: requestId,
+                submittedAt: new Date().toISOString(),
+                status: 'Pending'
+            };
+
+            // Add date information based on type
+            if (dateType.value === 'range') {
+                formData.startDate = startDateInput.value;
+                formData.endDate = endDateInput.value;
+                formData.dates = null;
+                formData.dateDetails = null;
+            } else {
+                // ✅ FIXED: Use getDateKey instead of toISOString
+                formData.dates = selectedSpecificDates.map(date => getDateKey(date));
+                
+                // Include detailed information about each date (full or half day)
+                formData.dateDetails = selectedSpecificDates.map(date => {
+                    const dateKey = getDateKey(date);
+                    return {
+                        date: dateKey,
+                        dayType: dateTypes[dateKey] || 'full',
+                        formattedDate: formatDate(date)
+                    };
+                });
+                formData.startDate = null;
+                formData.endDate = null;
+            }
+
+            // Show loading state
+            const submitBtn = document.querySelector('.submit-btn');
+            const originalText = submitBtn.textContent;
+            submitBtn.disabled = true;
+            submitBtn.textContent = '⏳ Submitting...';
+
+            try {
+                // Send to n8n webhook
+                const response = await fetch(WEBHOOK_URL, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify(formData)
+                });
+
+                if (!response.ok) {
+                    throw new Error(`HTTP error! status: ${response.status}`);
+                }
+
+                const result = await response.json();
+                console.log('Success:', result);
+                
+                alert(`✅ Leave request submitted successfully!\n\nRequest ID: ${requestId}\n\nYou will receive a confirmation email shortly.`);
+                
+                // Reset form
+                form.reset();
+                dateRangeContainer.classList.remove('active');
+                specificDatesContainer.classList.remove('active');
+                selectedSpecificDates = [];
+                dateTypes = {};
+                if (flatpickrInstance) {
+                    flatpickrInstance.clear();
+                }
+                updateSelectedDatesDisplay();
+
+            } catch (error) {
+                console.error('Error:', error);
+                alert('❌ Failed to submit leave request. Please try again or contact IT support.\n\nError: ' + error.message);
+            } finally {
+                // Reset button state
+                submitBtn.disabled = false;
+                submitBtn.textContent = originalText;
+            }
+        });
+
+        // ============================================
+        // Initial State
+        // ============================================
+        // Both containers hidden initially until user selects date type
+    </script>
+</body>
+</html>
