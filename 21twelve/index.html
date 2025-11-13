@@ -389,6 +389,20 @@
             color: #64748b;
             margin-top: 6px;
         }
+
+        /* ============================================
+           Flatpickr Weekend Disable Styling
+           ============================================ */
+        .flatpickr-day.flatpickr-disabled {
+            color: #d1d5db !important;
+            cursor: not-allowed !important;
+            background: #f9fafb !important;
+        }
+
+        .flatpickr-day.flatpickr-disabled:hover {
+            background: #f9fafb !important;
+            border-color: transparent !important;
+        }
     </style>
 </head>
 <body>
@@ -456,6 +470,7 @@
                             <input type="date" id="endDate" name="endDate">
                         </div>
                     </div>
+                    <p class="info-text"><strong>Note: Weekends (Saturday & Sunday) cannot be selected.</strong> Please select weekdays only.</p>
                 </div>
 
                 <!-- Specific Dates Container -->
@@ -464,7 +479,7 @@
                         <label for="specificDates">Select Multiple Dates <span class="required">*</span></label>
                         <input type="text" id="specificDates" name="specificDates" 
                                placeholder="Click to select multiple dates" readonly>
-                        <p class="info-text">Click on multiple dates in the calendar. After selecting, you can toggle each date between Full Day and Half Day.</p>
+                        <p class="info-text">Click on multiple dates in the calendar. After selecting, you can toggle each date between Full Day and Half Day. <strong>Note: Weekends (Saturday & Sunday) are disabled.</strong></p>
                         
                         <div class="selected-dates-display">
                             <h4>Selected Dates:</h4>
@@ -576,6 +591,31 @@
         });
 
         // ============================================
+        // Leave Type Change Handler - Update Day Types
+        // ============================================
+        document.getElementById('leaveType').addEventListener('change', function() {
+            const leaveType = this.value;
+            
+            // Determine what day type this leave type should use
+            let newDayType = null;
+            if (leaveType === 'planned_half' || leaveType === 'unplanned_half' || leaveType === 'half_day') {
+                newDayType = 'half';
+            } else if (leaveType === 'wfh' || leaveType === 'lwp') {
+                newDayType = 'full';
+            }
+            // For 'planned' and 'unplanned', newDayType stays null (user can toggle)
+            
+            // If there are already selected dates, update their types
+            if (newDayType !== null && selectedSpecificDates.length > 0) {
+                selectedSpecificDates.forEach(date => {
+                    const dateKey = getDateKey(date);
+                    dateTypes[dateKey] = newDayType;
+                });
+                updateSelectedDatesDisplay();
+            }
+        });
+
+        // ============================================
         // Initialize Flatpickr (Multi-Date Picker)
         // ============================================
         function initializeFlatpickr() {
@@ -588,13 +628,35 @@
                 dateFormat: 'Y-m-d',
                 minDate: 'today',
                 conjunction: ', ',
+                // ============================================
+                // 🔥 Disable weekends (Saturday = 6, Sunday = 0)
+                // ============================================
+                disable: [
+                    function(date) {
+                        // Return true to disable the date
+                        // 0 = Sunday, 6 = Saturday
+                        return (date.getDay() === 0 || date.getDay() === 6);
+                    }
+                ],
                 onChange: function(selectedDates, dateStr, instance) {
                     selectedSpecificDates = selectedDates;
-                    // Initialize new dates as 'full' day by default
+                    
+                    // ============================================
+                    // 🔥 Set day type based on leave type
+                    // ============================================
+                    const leaveType = document.getElementById('leaveType').value;
+                    
+                    // Determine default day type based on leave type
+                    let defaultDayType = 'full';
+                    if (leaveType === 'planned_half' || leaveType === 'unplanned_half' || leaveType === 'half_day') {
+                        defaultDayType = 'half';
+                    }
+                    
+                    // Initialize new dates with appropriate day type
                     selectedDates.forEach(date => {
                         const dateKey = getDateKey(date);
                         if (!dateTypes[dateKey]) {
-                            dateTypes[dateKey] = 'full';
+                            dateTypes[dateKey] = defaultDayType;
                         }
                     });
                     updateSelectedDatesDisplay();
@@ -626,18 +688,33 @@
                 chip.className = `date-chip ${dayType === 'half' ? 'half-day' : ''}`;
                 
                 const formattedDate = formatDate(date);
+                
+                // ============================================
+                // 🔥 Only show toggle for Planned/Unplanned
+                // ============================================
+                const leaveType = document.getElementById('leaveType').value;
+                const showToggle = (leaveType === 'planned' || leaveType === 'unplanned');
+                
+                // Build toggle HTML conditionally
+                let toggleHTML = '';
+                if (showToggle) {
+                    toggleHTML = `
+                        <div class="day-type-toggle">
+                            <button type="button" class="day-type-btn ${dayType === 'full' ? 'active' : ''}" 
+                                    onclick="toggleDayType('${dateKey}', 'full')" title="Full Day">
+                                Full
+                            </button>
+                            <button type="button" class="day-type-btn ${dayType === 'half' ? 'active' : ''}" 
+                                    onclick="toggleDayType('${dateKey}', 'half')" title="Half Day">
+                                Half
+                            </button>
+                        </div>
+                    `;
+                }
+                
                 chip.innerHTML = `
                     <span>${formattedDate}</span>
-                    <div class="day-type-toggle">
-                        <button type="button" class="day-type-btn ${dayType === 'full' ? 'active' : ''}" 
-                                onclick="toggleDayType('${dateKey}', 'full')" title="Full Day">
-                            Full
-                        </button>
-                        <button type="button" class="day-type-btn ${dayType === 'half' ? 'active' : ''}" 
-                                onclick="toggleDayType('${dateKey}', 'half')" title="Half Day">
-                            Half
-                        </button>
-                    </div>
+                    ${toggleHTML}
                     <button type="button" onclick="removeDateChip(${index})" title="Remove date">×</button>
                 `;
                 
@@ -679,12 +756,43 @@
         }
 
         // ============================================
-        // End Date Validation
+        // End Date Validation + Weekend Check
         // ============================================
+        
+        // Helper function to check if a date is weekend
+        function isWeekend(dateString) {
+            const date = new Date(dateString);
+            const day = date.getDay();
+            return (day === 0 || day === 6); // 0 = Sunday, 6 = Saturday
+        }
+        
+        // Helper function to get day name
+        function getDayName(dateString) {
+            const date = new Date(dateString);
+            const days = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
+            return days[date.getDay()];
+        }
+        
+        // Validate start date
         startDateInput.addEventListener('change', function() {
+            if (isWeekend(this.value)) {
+                alert(`❌ Cannot select ${getDayName(this.value)}!\n\nWeekends (Saturday and Sunday) are not allowed for leave requests.\n\nPlease select a weekday.`);
+                this.value = '';
+                return;
+            }
+            
             endDateInput.min = this.value;
             if (endDateInput.value && endDateInput.value < this.value) {
                 endDateInput.value = this.value;
+            }
+        });
+        
+        // Validate end date
+        endDateInput.addEventListener('change', function() {
+            if (isWeekend(this.value)) {
+                alert(`❌ Cannot select ${getDayName(this.value)}!\n\nWeekends (Saturday and Sunday) are not allowed for leave requests.\n\nPlease select a weekday.`);
+                this.value = '';
+                return;
             }
         });
 
@@ -747,12 +855,27 @@
                 // ✅ FIXED: Use getDateKey instead of toISOString
                 formData.dates = selectedSpecificDates.map(date => getDateKey(date));
                 
+                // ============================================
+                // 🔥 Determine day type based on leave type
+                // ============================================
+                const leaveType = document.getElementById('leaveType').value;
+                let forcedDayType = null;
+                
+                // For fixed leave types, override day type
+                if (leaveType === 'planned_half' || leaveType === 'unplanned_half' || leaveType === 'half_day') {
+                    forcedDayType = 'half';
+                } else if (leaveType === 'wfh' || leaveType === 'lwp') {
+                    forcedDayType = 'full';
+                }
+                
                 // Include detailed information about each date (full or half day)
                 formData.dateDetails = selectedSpecificDates.map(date => {
                     const dateKey = getDateKey(date);
+                    // Use forced type if leave type is fixed, otherwise use user selection
+                    const dayType = forcedDayType || dateTypes[dateKey] || 'full';
                     return {
                         date: dateKey,
-                        dayType: dateTypes[dateKey] || 'full',
+                        dayType: dayType,
                         formattedDate: formatDate(date)
                     };
                 });
