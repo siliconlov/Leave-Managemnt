@@ -403,6 +403,18 @@
             background: #f9fafb !important;
             border-color: transparent !important;
         }
+
+        /* Word counter styles */
+        .word-counter {
+            font-size: 13px;
+            color: #64748b;
+            margin-top: 6px;
+            text-align: right;
+        }
+        .word-counter.error {
+            color: #e53e3e;
+            font-weight: 600;
+        }
     </style>
 </head>
 <body>
@@ -437,7 +449,6 @@
                         <option value="planned_half">Planned Half</option>
                         <option value="unplanned_half">Unplanned Half</option>
                         <option value="lwp">LWP</option>
-                        <option value="half_day">Half Day</option>
                         <option value="wfh">WFH</option>
                     </select>
                 </div>
@@ -487,18 +498,26 @@
                                 <span class="empty-dates">No dates selected yet</span>
                             </div>
                         </div>
+			
                     </div>
                 </div>
+		<p id="sandwichWarning"
+   		   class="info-text"
+                   style="display:none; color:#e53e3e; font-weight:600;">
+                  ⚠️ These dates will be considered as <strong>Sandwich Leave</strong>.
+                </p>
 
                 <!-- Reason -->
                 <div class="form-group">
                     <label for="reason">Reason for Leave <span class="required">*</span></label>
                     <textarea id="reason" name="reason" required 
                               placeholder="Please provide a brief reason for your leave request"></textarea>
+                    <!-- added live word counter -->
+                    <div id="wordCounter" class="word-counter">Words: 0 / Minimum 10 required</div>
                 </div>
 
                 <!-- Submit Button -->
-                <button type="submit" class="submit-btn">🚀 Submit Leave Request</button>
+                <button type="submit" class="submit-btn" id="mainSubmitBtn" disabled>🚀 Submit Leave Request</button>
             </form>
         </div>
     </div>
@@ -518,6 +537,9 @@
         const endDateInput = document.getElementById('endDate');
         const specificDatesInput = document.getElementById('specificDates');
         const selectedDatesChips = document.getElementById('selectedDatesChips');
+        const reasonInput = document.getElementById('reason');
+        const wordCounter = document.getElementById('wordCounter');
+        const submitBtn = document.getElementById('mainSubmitBtn');
 
         // ============================================
         // State Management
@@ -541,6 +563,128 @@
             return `${year}-${month}-${day}`;
         }
 
+        // ============================================
+        // Helper: Count Words
+        // ============================================
+        function countWords(text) {
+            if (!text) return 0;
+            return text
+                .trim()
+                .split(/\s+/)
+                .filter(word => word.length > 0)
+                .length;
+        }
+
+        // ============================================
+        // Live Word Counter for Reason & submit enable/disable
+        // ============================================
+        function updateWordCounter() {
+            const text = reasonInput.value;
+            const wordCount = countWords(text);
+            wordCounter.textContent = `Words: ${wordCount} / Minimum 10 required`;
+            if (wordCount < 10) {
+                wordCounter.classList.add('error');
+                submitBtn.disabled = true;
+            } else {
+                wordCounter.classList.remove('error');
+                submitBtn.disabled = false;
+            }
+        }
+
+        reasonInput.addEventListener('input', updateWordCounter);
+        // initialize on load
+        updateWordCounter();
+	// ============================================
+	// Sandwich Leave Detection
+	// ============================================
+	// For Specific Dates (Fri + Mon)
+	function isSandwichSpecificDates(dates) {
+    if (dates.length < 2) return false;
+
+    const sorted = [...dates].sort((a, b) => a - b);
+
+    for (let i = 1; i < sorted.length; i++) {
+        const prev = sorted[i - 1];
+        const curr = sorted[i];
+
+        const diffDays = (curr - prev) / (1000 * 60 * 60 * 24);
+
+        // Must be Fri -> Mon
+        if (
+            diffDays === 3 &&
+            prev.getDay() === 5 &&
+            curr.getDay() === 1
+        ) {
+            const prevKey = getDateKey(prev);
+            const currKey = getDateKey(curr);
+
+            // 🔥 NEW RULE:
+            // If either day is HALF, no sandwich
+            if (
+                dateTypes[prevKey] === 'half' ||
+                dateTypes[currKey] === 'half'
+            ) {
+                return false;
+            }
+
+            return true;
+        }
+    }
+
+    return false;
+}
+
+	// For Date Range (any range covering Sat + Sun)
+	function isSandwichDateRange(start, end) {
+    if (!start || !end) return false;
+
+    const [sy, sm, sd] = start.split('-').map(Number);
+    const [ey, em, ed] = end.split('-').map(Number);
+
+    let d = new Date(sy, sm - 1, sd);
+    const endDate = new Date(ey, em - 1, ed);
+
+    while (d <= endDate) {
+        if (d.getDay() === 6) { // Saturday
+            const sunday = new Date(d);
+            sunday.setDate(d.getDate() + 1);
+            if (sunday <= endDate && sunday.getDay() === 0) {
+                return true;
+            }
+        }
+        d.setDate(d.getDate() + 1);
+    }
+
+    return false;
+}
+
+	function updateSandwichWarning() {
+    const warning = document.getElementById('sandwichWarning');
+    const dateType = document.querySelector('input[name="dateType"]:checked');
+
+    if (!dateType) {
+        warning.style.display = 'none';
+        return;
+    }
+
+    if (
+        dateType.value === 'specific' &&
+        isSandwichSpecificDates(selectedSpecificDates)
+    ) {
+        warning.style.display = 'block';
+        return;
+    }
+
+    if (
+        dateType.value === 'range' &&
+        isSandwichDateRange(startDateInput.value, endDateInput.value)
+    ) {
+        warning.style.display = 'block';
+        return;
+    }
+
+    warning.style.display = 'none';
+}
         // ============================================
         // Date Type Selection Handler
         // ============================================
@@ -567,6 +711,7 @@
                         flatpickrInstance.clear();
                     }
                     updateSelectedDatesDisplay();
+		    updateSandwichWarning();
                     
                 } else if (selectedType === 'specific') {
                     // Show specific dates, hide date range
@@ -586,6 +731,7 @@
                     
                     // Initialize Flatpickr if not already done
                     initializeFlatpickr();
+		    updateSandwichWarning();
                 }
             });
         });
@@ -598,9 +744,9 @@
             
             // Determine what day type this leave type should use
             let newDayType = null;
-            if (leaveType === 'planned_half' || leaveType === 'unplanned_half' || leaveType === 'half_day') {
+            if (leaveType === 'planned_half' || leaveType === 'unplanned_half') {
                 newDayType = 'half';
-            } else if (leaveType === 'wfh' || leaveType === 'lwp') {
+            } else if (leaveType === 'wfh') {
                 newDayType = 'full';
             }
             // For 'planned' and 'unplanned', newDayType stays null (user can toggle)
@@ -648,7 +794,7 @@
                     
                     // Determine default day type based on leave type
                     let defaultDayType = 'full';
-                    if (leaveType === 'planned_half' || leaveType === 'unplanned_half' || leaveType === 'half_day') {
+                    if (leaveType === 'planned_half' || leaveType === 'unplanned_half') {
                         defaultDayType = 'half';
                     }
                     
@@ -677,6 +823,7 @@
             
             if (selectedSpecificDates.length === 0) {
                 selectedDatesChips.innerHTML = '<span class="empty-dates">No dates selected yet</span>';
+		updateSandwichWarning();
                 return;
             }
 
@@ -689,11 +836,12 @@
                 
                 const formattedDate = formatDate(date);
                 
+
                 // ============================================
                 // 🔥 Only show toggle for Planned/Unplanned
                 // ============================================
                 const leaveType = document.getElementById('leaveType').value;
-                const showToggle = (leaveType === 'planned' || leaveType === 'unplanned');
+                const showToggle = leaveType === 'planned' || leaveType === 'unplanned' || leaveType ==='lwp';
                 
                 // Build toggle HTML conditionally
                 let toggleHTML = '';
@@ -720,6 +868,8 @@
                 
                 selectedDatesChips.appendChild(chip);
             });
+	    updateSandwichWarning();
+
         }
 
         // ============================================
@@ -745,6 +895,7 @@
             }
             
             updateSelectedDatesDisplay();
+	    updateSandwichWarning();
         };
 
         // ============================================
@@ -772,29 +923,27 @@
             const days = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
             return days[date.getDay()];
         }
+	function handleRangeDateChange() {
+   	    if (!startDateInput.value || !endDateInput.value) {
+            updateSandwichWarning();
+            return;
+        }
+
+        if (isWeekend(startDateInput.value) || isWeekend(endDateInput.value)) {
+            return;
+        }
+
+        updateSandwichWarning();
+   }
         
         // Validate start date
-        startDateInput.addEventListener('change', function() {
-            if (isWeekend(this.value)) {
-                alert(`❌ Cannot select ${getDayName(this.value)}!\n\nWeekends (Saturday and Sunday) are not allowed for leave requests.\n\nPlease select a weekday.`);
-                this.value = '';
-                return;
-            }
-            
-            endDateInput.min = this.value;
-            if (endDateInput.value && endDateInput.value < this.value) {
-                endDateInput.value = this.value;
-            }
-        });
+        startDateInput.addEventListener('change', handleRangeDateChange);
+        endDateInput.addEventListener('change', handleRangeDateChange);
+
+      
         
-        // Validate end date
-        endDateInput.addEventListener('change', function() {
-            if (isWeekend(this.value)) {
-                alert(`❌ Cannot select ${getDayName(this.value)}!\n\nWeekends (Saturday and Sunday) are not allowed for leave requests.\n\nPlease select a weekday.`);
-                this.value = '';
-                return;
-            }
-        });
+       
+       
 
         // ============================================
         // Configuration - n8n Webhook URL
@@ -807,6 +956,14 @@
         form.addEventListener('submit', async function(e) {
             e.preventDefault();
             
+            // Additional check: ensure reason has >= 10 words before submission
+            const reasonTextNow = reasonInput.value.trim();
+            if (countWords(reasonTextNow) < 10) {
+                alert('Please enter at least 10 words in the Reason for Leave field.');
+                reasonInput.focus();
+                return;
+            }
+
             // Validate dates based on selection type
             const dateType = document.querySelector('input[name="dateType"]:checked');
             
@@ -818,6 +975,8 @@
             if (dateType.value === 'range') {
                 if (!startDateInput.value || !endDateInput.value) {
                     alert('Please select both start and end dates');
+		    
+
                     return;
                 }
                 if (new Date(endDateInput.value) < new Date(startDateInput.value)) {
@@ -827,6 +986,8 @@
             } else if (dateType.value === 'specific') {
                 if (selectedSpecificDates.length === 0) {
                     alert('Please select at least one specific date');
+		    
+
                     return;
                 }
             }
@@ -862,9 +1023,9 @@
                 let forcedDayType = null;
                 
                 // For fixed leave types, override day type
-                if (leaveType === 'planned_half' || leaveType === 'unplanned_half' || leaveType === 'half_day') {
+                if (leaveType === 'planned_half' || leaveType === 'unplanned_half') {
                     forcedDayType = 'half';
-                } else if (leaveType === 'wfh' || leaveType === 'lwp') {
+                } else if (leaveType === 'wfh') {
                     forcedDayType = 'full';
                 }
                 
@@ -884,10 +1045,10 @@
             }
 
             // Show loading state
-            const submitBtn = document.querySelector('.submit-btn');
-            const originalText = submitBtn.textContent;
-            submitBtn.disabled = true;
-            submitBtn.textContent = '⏳ Submitting...';
+            const submitBtnLocal = document.querySelector('.submit-btn');
+            const originalText = submitBtnLocal.textContent;
+            submitBtnLocal.disabled = true;
+            submitBtnLocal.textContent = '⏳ Submitting...';
 
             try {
                 // Send to n8n webhook
@@ -918,14 +1079,16 @@
                     flatpickrInstance.clear();
                 }
                 updateSelectedDatesDisplay();
+                // reset word counter and disable submit until satisfied again
+                updateWordCounter();
 
             } catch (error) {
                 console.error('Error:', error);
                 alert('❌ Failed to submit leave request. Please try again or contact IT support.\n\nError: ' + error.message);
             } finally {
                 // Reset button state
-                submitBtn.disabled = false;
-                submitBtn.textContent = originalText;
+                submitBtnLocal.disabled = false;
+                submitBtnLocal.textContent = originalText;
             }
         });
 
@@ -933,6 +1096,7 @@
         // Initial State
         // ============================================
         // Both containers hidden initially until user selects date type
+        // submit button disabled until reason has >= 10 words (handled by updateWordCounter on load)
     </script>
 </body>
 </html>
